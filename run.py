@@ -1,8 +1,8 @@
 import gym
 import time
 
-envs = ["starpilot", "coinrun", "bossfight", "bigfish", "caveflyer",
- "chaser", "climber", "heist", "jumper", "leaper", "maze", "miner", "ninja", "plunder", "fruitbot"]
+envs = ["starpilot", "coinrun", "bossfight", "bigfish", "caveflyer", "chaser", "climber", "heist",
+ "jumper", "leaper", "maze", "miner", "ninja", "plunder", "fruitbot", "dodgeball"]
 
 """
 env = gym.make("procgen:procgen-{}-v0".format("miner"))
@@ -14,7 +14,6 @@ env.render(mode='human')
 for e in envs:
 	env = gym.make("procgen:procgen-{}-v0".format(e))
 	obs = env.reset()
-	print(obs.shape)
 	env.render(mode='human')
 
 	for i in range(100):
