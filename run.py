@@ -16,7 +16,7 @@ for e in envs:
 	obs = env.reset()
 	env.render(mode='human')
 
-	for i in range(100):
+	for i in range(20):
 	    action = env.action_space.sample()
 	    _, _, done, _ = env.step(action)
 	    env.render(mode='human')

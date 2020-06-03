@@ -14,7 +14,8 @@ class MasterAgent(pl.LightningModule):
 		self.policy_network = PolicyNetwork(hparams)
 		self.value_network = ValueNetwork(hparams)
 		self.q_network = QNetwork(hparams)
-		self.model_networ = ModelNetwork(hparams)
+		self.model_network = ModelNetwork(hparams)
+		self.reward_network = RewardNetwork(hparams)
 
 
 		# trainer

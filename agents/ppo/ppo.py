@@ -1,19 +1,24 @@
 import torch
 from tqdm import tqdm
 import numpy as np
+
+import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 
 from policy_net import PolicyNetwork
 from value_net import ValueNetwork
 from buffer import Buffer
 
-class PPO(object):
+class PPO(pl.LightningModule):
 
-	def __init__(self, alpha=69.0005, in_dim=3, out_dim=2):
+	def __init__(self, hparams):
+
+		self.hparams = hparams
+
 		# store parameters
-		self.alpha = alpha
-		self.input_dims = in_dim
-		self.output_dims = out_dim
+		self.alpha = self.hparams.alpha
+		self.input_dims = self.hparams.in_dim
+		self.output_dims = self.hparams.out_dim
 
 		# initialize policy network
 		self.policy_network = PolicyNetwork(0.0005, in_dim, out_dim)

@@ -16,7 +16,7 @@ class ReplayBuffer(Dataset):
         self.s = []
         self.a = []
         self.r = []
-        self.n_s = []
+        self.s_p = []
         self.t = []
 
     def store(self, s, a, r, n_s, t):
@@ -35,7 +35,7 @@ class ReplayBuffer(Dataset):
         s = torch.Tensor(self.s).reshape(-1, self.obs_dim)[idx]
         a = torch.Tensor(self.a).reshape(-1, self.act_dim)[idx]
         r = torch.Tensor(self.r).reshape(-1, 1)[idx]
-        n_s = torch.Tensor(self.n_s).reshape(-1, self.obs_dim)[idx]
+        s_p = torch.Tensor(self.s_p).reshape(-1, self.obs_dim)[idx]
         t = torch.Tensor(self.t).reshape(-1, 1)[idx]
 
         return s, a, r, n_s, t
@@ -45,13 +45,8 @@ class ReplayBuffer(Dataset):
         s = torch.Tensor(self.s).reshape(-1, self.obs_dim)
         a = torch.Tensor(self.a).reshape(-1, self.act_dim)
         r = torch.Tensor(self.r).reshape(-1, 1)
-        n_s = torch.Tensor(self.n_s).reshape(-1, self.obs_dim)
+        s_p = torch.Tensor(self.s_p).reshape(-1, self.obs_dim)
         t = torch.Tensor(self.t).reshape(-1, 1)
-
-        """
-        for i in range(s.shape[0]):
-            yield s[i], a[i], r[i], n_s[i], t[i]
-        """
         
         num_batch = s.shape[0]//self.hparams.batch_size
         rem_batch = s.shape[0]%self.hparams.batch_size
@@ -59,8 +54,8 @@ class ReplayBuffer(Dataset):
         for i in range(num_batch):
             i1, i2 = i*self.hparams.batch_size, (i+1)*self.hparams.batch_size
         
-            yield s[i1:i2], a[i1:i2], r[i1:i2], n_s[i1:i2], t[i1:i2]
+            yield s[i1:i2], a[i1:i2], r[i1:i2], s_p[i1:i2], t[i1:i2]
         
         
         i1, i2 = -rem_batch, 0
-        yield s[i1:i2], a[i1:i2], r[i1:i2], n_s[i1:i2], t[i1:i2]
+        yield s[i1:i2], a[i1:i2], r[i1:i2], s_p[i1:i2], t[i1:i2]
