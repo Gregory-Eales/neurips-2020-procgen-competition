@@ -34,9 +34,6 @@ class PPO(pl.LightningModule):
 		# initialize vpg buffer
 		self.buffer = Buffer()
 
-		# historical episode length
-		self.hist_length = []
-
 	def act(self, s):
 
 		# convert to torch tensor
@@ -83,7 +80,23 @@ class PPO(pl.LightningModule):
 		return a.detach().numpy()
 
 	def env_step(self):
-		pass
+
+		for i_episode in range(episodes):
+
+			s = env.reset()
+
+			for t in range(steps):
+
+				a = self..act(s, epsilon=epsilon)
+
+				s_p, r, d, info = env.step(a)
+				if t==steps-1: d = True
+
+				self.store(s, a, r, s_p, d)
+				s = s_p
+
+				if d:
+					break
 
 	def training_step(self, batch, batch_idx, optimizer_idx):
         s, a, r, s_p, t = batch
