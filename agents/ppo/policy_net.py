@@ -34,13 +34,6 @@ class PolicyNetwork(torch.nn.Module):
         self.l2 = torch.nn.Linear(64, 64)
         self.l3 = torch.nn.Linear(64, self.out_dim)
 
-    def normalize(self, x):
-        x = np.array(x)
-        x_mean = np.mean(x)
-        x_std = np.std(x) if np.std(x) > 0 else 1
-        x = (x-x_mean)/x_std
-        return torch.Tensor(x)
-
     def loss(self, r_theta, advantages):
 
         clipped_r = torch.clamp(r_theta, 1.0 - self.epsilon, 1.0 + self.epsilon)
@@ -48,8 +41,6 @@ class PolicyNetwork(torch.nn.Module):
 
     def forward(self, x):
         out = torch.Tensor(x).to(self.device)
-
-        
 
         out = self.conv1(out)
         out = self.tanh(out)
@@ -71,38 +62,6 @@ class PolicyNetwork(torch.nn.Module):
         out = self.sigmoid(out)
 
         return out.to(torch.device('cpu:0'))
-
-    def optimize(self, r, adv, iter=1):
-
-        adv = self.normalize(adv)
-
-        n_samples = r.shape[0]
-        num_batch = int(n_samples/5)
-
-
-        # calculate loss
-        loss = self.loss(r, adv)
-
-        l = []
-
-        for batch in range(5):
-            l.append(torch.sum(loss[batch*num_batch:(batch+1)*num_batch]))
-
-        print("Training Policy Net:")
-        for i in tqdm(range(iter)):
-
-            for batch in range(5):
-
-
-                torch.cuda.empty_cache()
-                # zero the parameter gradients
-                self.optimizer.zero_grad()
-
-                # optimize
-                l[batch].backward(retain_graph=True)
-
-                self.optimizer.step()
-
 
 
 def main():

@@ -16,7 +16,7 @@ class PPO(pl.LightningModule):
 		self.hparams = hparams
 
 		# store parameters
-		self.alpha = self.hparams.alpha
+		self.lr = self.hparams.lr
 		self.input_dims = self.hparams.in_dim
 		self.output_dims = self.hparams.out_dim
 
@@ -79,155 +79,29 @@ class PPO(pl.LightningModule):
 
 		return a.detach().numpy()
 
-	def update(self, iter=80):
-
-		# returns buffer values as pytorch tensors
-		observations, actions, old_actions, rewards, advantages = self.buffer.get_tensors()
-
-		# set state dict
-		state_dict = self.policy_network.state_dict()
-		self.old_policy_network.load_state_dict(state_dict)
-
-		r = (old_actions.detach())/actions
-
-		# update policy
-		self.policy_network.optimize(r, advantages, iter=1)
-
-		# update value network
-		self.value_network.optimize(observations, rewards, epochs=iter)
-
-	def train(self, env, n_epoch, n_steps, render=False, verbos=True):
-
-		# initialize step variable
-		step = 0
-
-		# historical episode length
-		episode_lengths = [1]
-
-		plt.ion()
-		average_rewards = []
-		highest_rewards = []
-
-		# for n episodes or terminal state:
-		for epoch in range(n_epoch):
-
-			# initial reset of environment
-			observation = env.reset()
-
-			# store observation
-			self.buffer.store_observation(observation)
-
-			episode_lengths = [1]
-
-			print("Epoch: {}".format(epoch))
-			# for t steps:
-			for t in range(n_steps):
-
-				# increment step
-				step += 1
-
-				# render env screen
-				if render: env.render()
-
-				# get action, and network policy prediction
-				action, log_prob, old_log_prob = self.act(observation)
-
-				# store action
-				self.buffer.store_action(log_prob)
-
-				# store old action
-				self.buffer.store_old_action(old_log_prob)
-
-				# get state + reward
-				observation, reward, done, info = env.step(action)
-
-				# store observation
-				self.buffer.store_observation(observation)
-
-				# store rewards
-				self.buffer.store_reward(reward)
-
-				# calculate advantage
-				a = self.calculate_advantages(self.buffer.observation_buffer[-1]
-				, self.buffer.observation_buffer[-2])
-
-				# store advantage
-				self.buffer.store_advantage(a)
-
-				# check if episode is terminal
-				if done or t == n_steps-1:
-
-					for s in reversed(range(1, step+1)):
-
-						update = 0
-
-						for k in reversed(range(1, s+1)):
-							update += self.buffer.reward_buffer[-k]*(0.99**k)
-
-						self.buffer.reward_buffer[-s] += update
-
-					# change terminal reward to zero
-					self.buffer.reward_buffer[-1] = 0
-
-					# print time step
-					if verbos:
-						#print("Episode finished after {} timesteps".format(step+1))
-						pass
-
-					episode_lengths.append(step)
-
-					# reset step counter
-					step = 0
-
-					# reset environment
-					observation = env.reset()
-
-			# update model
-			self.update(iter=80)
-			step=0
-			self.buffer.clear_buffer()
-			print("Average Episode Length: {}".format(
-			np.sum(episode_lengths)/len(episode_lengths)))
-			print("Largest Episode Length: {}".format(max(episode_lengths)))
+	def env_step(self):
+		pass
 
 
-			# plot
-			average_rewards.append(np.sum(episode_lengths)/len(episode_lengths))
-			highest_rewards.append(max(episode_lengths))
-			plt.title("Reward per Epoch")
-			plt.xlabel("Epoch")
-			plt.ylabel("Reward")
-			plt.plot(np.array(average_rewards), label="average reward")
-			plt.plot(highest_rewards, label="highest reward")
-			plt.legend(loc="upper left")
-			plt.draw()
-			"""
-			if epoch%10 == 0:
-				plt.savefig('reward_img/epoch{}.png'.format(epoch))
-			"""
-			plt.pause(0.0001)
-			plt.clf()
-			if average_rewards[-1] > 120:
-				torch.save(self.policy_network.state_dict(), "policy_params.pt")
+	def training_step(self, batch, batch_idx, optimizer_idx):
+        s, a, r, s_p, t = batch
+   
+        # train policy
+        if optimizer_idx == 0:
+            return self.policy_network.loss(r, adv)
 
-	def play(self, env):
+        # train value
+        if optimizer_idx == 1:
+            return self.value_network.loss(input, target)
 
-		for i in range(1):
+    def configure_optimizers(self):
+        lr = self.hparams.lr
+        
+        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr)
+        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr)
+        return [opt_g, opt_d], []
+			
 
-			# initial reset of environment
-			observation = env.reset()
-			done = False
-			frame = 0
-			while not done:
-				frame+=1
-				img = env.render(mode="rgb_array")
-				scipy.misc.imsave('img/gif/img{}.jpg'.format(frame), img)
-
-				# get action, and network policy prediction
-				action, log_prob = self.act(observation)
-
-				# get state + reward
-				observation, reward, done, info = env.step(action)
 
 def main():
 

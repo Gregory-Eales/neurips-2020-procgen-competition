@@ -14,14 +14,17 @@ env.render(mode='human')
 for e in envs:
 	env = gym.make("procgen:procgen-{}-v0".format(e))
 	obs = env.reset()
-	env.render(mode='human')
+	#env.render(mode='human')
 
-	for i in range(20):
+	t = time.time()
+	for i in range(int(8e3)):
 	    action = env.action_space.sample()
 	    _, _, done, _ = env.step(action)
-	    env.render(mode='human')
-	    time.sleep(0.05)
+	    #env.render(mode='human')
+	    #time.sleep(0.05)
 	    if done:
 	    	env.reset()
+
+	print("Time-{}:".format(e), time.time()-t)
 
 	env.close()
