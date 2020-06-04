@@ -39,6 +39,10 @@ class Buffer(Dataset):
     def store_advantage(self, adv):
         self.adv.append(adv)
 
+    def store_probs(self, log_p, old_p):
+        self.act.append(log_p)
+        self.old_act.append(old_p)
+
     def clear_buffer(self):
         # store actions
         self.act = []

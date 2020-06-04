@@ -21,10 +21,10 @@ class PPO(pl.LightningModule):
 		self.output_dims = self.hparams.out_dim
 
 		# initialize policy network
-		self.policy_network = PolicyNetwork(0.0005, in_dim, out_dim)
+		self.policy_network = PolicyNetwork(hparams)
 
 		# initialize old policy
-		self.old_policy_network = PolicyNetwork(alpha=alpha, in_dim=in_dim, out_dim=out_dim)
+		self.old_policy_network = PolicyNetwork(hparams)
 		state_dict = self.policy_network.state_dict()
 		self.old_policy_network.load_state_dict(state_dict)
 
@@ -96,12 +96,15 @@ class PPO(pl.LightningModule):
         if optimizer_idx == 1:
             return self.value_network.loss(input, target)
 
+    def train_dataloader(self):
+        return DataLoader(self.buffer, batch_size=self.hparams.batch_size)
+
     def configure_optimizers(self):
         lr = self.hparams.lr
         
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr)
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr)
-        return [opt_g, opt_d], []
+        opt_p = torch.optim.Adam(self.generator.parameters(), lr=lr)
+        opt_v = torch.optim.Adam(self.discriminator.parameters(), lr=lr)
+        return [opt_p, opt_v], []
 			
 
 
