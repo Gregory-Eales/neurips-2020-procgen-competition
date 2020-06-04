@@ -59,7 +59,10 @@ class PPO(pl.LightningModule):
 		old_ap = torch.distributions.Categorical(old_p)
 		old_log_prob = (old_ap.probs[0][action]).reshape(1, 1)
 
-		return action, log_prob, old_log_prob
+
+		self.buffer.store_probs(log_prob, old_log_prob)
+
+		return action
 
 	def calculate_advantages(self, observation, prev_observation):
 
@@ -81,7 +84,6 @@ class PPO(pl.LightningModule):
 
 	def env_step(self):
 		pass
-
 
 	def training_step(self, batch, batch_idx, optimizer_idx):
         s, a, r, s_p, t = batch

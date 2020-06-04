@@ -4,20 +4,20 @@ import numpy as np
 
 class PolicyNetwork(torch.nn.Module):
 
-    def __init__(self, alpha, in_dim, out_dim, epsilon=0.1):
+    def __init__(self, hparams):
 
         super(PolicyNetwork, self).__init__()
+        self.hparams = hparams
 
-        self.in_dim = in_dim
-        self.out_dim = out_dim
-        self.epsilon = epsilon
+        self.in_dim = self.hparams.in_dim
+        self.out_dim = self.hparams.out_dim
+        self.epsilon = self.hparams.epsilon
+
         self.define_network()
-        self.optimizer = torch.optim.Adam(params=self.parameters(), lr=alpha)
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu:0')
-        self.to(self.device)
         self.prev_params = self.parameters()
 
     def define_network(self):
+
         self.relu = torch.nn.ReLU()
         self.leaky_relu = torch.nn.LeakyReLU()
         self.sigmoid = torch.nn.Sigmoid()
@@ -27,8 +27,6 @@ class PolicyNetwork(torch.nn.Module):
         self.conv2 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=2)
         self.conv3 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=2)
         self.conv4 = torch.nn.Conv2d(64, 64, kernel_size=7)
-
-
 
         self.l1 = torch.nn.Linear(self.in_dim, 64)
         self.l2 = torch.nn.Linear(64, 64)
@@ -62,15 +60,3 @@ class PolicyNetwork(torch.nn.Module):
         out = self.sigmoid(out)
 
         return out.to(torch.device('cpu:0'))
-
-
-def main():
-
-    t1 = torch.ones(1, 3)
-    pn = PolicyNetwork(0.01, 3, 1)
-    print(pn(t1))
-    print(pn.parameters())
-
-
-if __name__ == "__main__":
-    main()
