@@ -28,5 +28,5 @@ def _import_ppo_agent():
 
 CUSTOM_ALGORITHMS = {
     "custom/CustomRandomAgent": _import_custom_random_agent
-    ""
+    
 }
