@@ -17,7 +17,16 @@ def _import_custom_random_agent():
     from .custom_random_agent.custom_random_agent import CustomRandomAgent
     return CustomRandomAgent
 
+def _import_master_agent():
+	from .master_agent.master_agent import MasterAgent
+	return MasterAgent
+
+def _import_ppo_agent():
+	from .ppo_agent.ppo import PPO
+	return PPO
+
 
 CUSTOM_ALGORITHMS = {
     "custom/CustomRandomAgent": _import_custom_random_agent
+    ""
 }
