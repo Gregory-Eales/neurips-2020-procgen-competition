@@ -1,63 +1,52 @@
-import torch
-import pytorch_lightning as pl
+import numpy as np
 
-from policy_network import PolicyNetwork
-from value_network import ValueNetwork
+from ray.rllib.agents.trainer import Trainer, with_common_config
+from ray.rllib.utils.annotations import override
 
-class MasterAgent(pl.LightningModule):
+"""
+Note : This implementation has been adapted from : 
+    https://github.com/ray-project/ray/blob/master/rllib/contrib/random_agent/random_agent.py
+"""
 
+# yapf: disable
+# __sphinx_doc_begin__
+class MasterAgent(Trainer):
+    """Policy that takes random actions and never learns."""
 
-	def __init__(self, hparams):
+    _name = "MasterAgent"
+    _default_config = with_common_config({
+        "rollouts_per_iteration": 10,
+    })
 
-		self.hparams = hparams
+    @override(Trainer)
+    def _init(self, config, env_creator):
+        self.env = env_creator(config["env_config"])
 
-		self.policy_network = PolicyNetwork(hparams)
-		self.value_network = ValueNetwork(hparams)
-		self.q_network = QNetwork(hparams)
-		self.model_network = ModelNetwork(hparams)
-		self.reward_network = RewardNetwork(hparams)
-
-
-		# trainer
-        self.trainer = pl.Trainer(gpus=self.hparams.gpu, max_epochs=self.hparams.num_epochs)
-
-
-	def act(self, s):
-
-		s = torch.tensor(s).reshape(-1, 3, 64, 64).float()
-		prediction = self.policy_network.forward(s)
-		action_probabilities = torch.distributions.Categorical(prediction)
-		action = action_probabilities.sample().item()
-		log_prob = (action_probabilities.probs[0][action]).reshape(1, 1)
-
-		# STORE LOG PROBS
-
-		return action
-
-	def calculate_advantages(self):
-		pass
-
-	def forward(self, x):
-        pass
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        s, a, r, s_p, t = batch
-   
-        # train policy
-        if optimizer_idx == 0:
-            return None
-
-        # train value
-        if optimizer_idx == 1:
-            return None
-
-    def configure_optimizers(self):
-        lr = self.hparams.lr
-        
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr)
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr)
-        return [opt_g, opt_d], []
-
-   
+    @override(Trainer)
+    def _train(self):
+        rewards = []
+        steps = 0
+        for _ in range(self.config["rollouts_per_iteration"]):
+            obs = self.env.reset()
+            done = False
+            reward = 0.0
+            while not done:
+                action = self.env.action_space.sample()
+                obs, r, done, info = self.env.step(action)
+                reward += r
+                steps += 1
+            rewards.append(reward)
+        return {
+            "episode_reward_mean": np.mean(rewards),
+            "timesteps_this_iter": steps,
+        }
+# __sphinx_doc_end__
+# don't enable yapf after, it's buggy here
 
 
+if __name__ == "__main__":
+    trainer = MasterAgent(
+        env="CartPole-v0", config={"rollouts_per_iteration": 10})
+    result = trainer.train()
+    assert result["episode_reward_mean"] > 10, result
+    print("Test: OK")
