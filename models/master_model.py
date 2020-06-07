@@ -15,62 +15,10 @@ from ray.rllib.utils.annotations import DeveloperAPI, PublicAPI
 import time
 
 
+from models.modules.auto_encoder import Encoder, Decoder
 
 
 torch, nn = try_import_torch()
-
-
-class Encoder(nn.Module):
-
-    def __init__(self):
-        super(Encoder, self).__init__()
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=4, stride=2)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=6, stride=1)
-
-
-    def forward(self, x):
-
-        out = x
-
-        out = self.conv1(out)
-        out = nn.functional.relu(out)
-        out = self.conv2(out)
-        out = nn.functional.relu(out)
-        out = self.conv3(out)
-        out = nn.functional.relu(out)
-        out = self.conv4(out)
-        out = nn.functional.relu(out)
-
-        return out
-
-
-class Decoder(nn.Module):
-
-    def __init__(self):
-        super(Decoder, self).__init__()
-
-        self.deconv1 = nn.ConvTranspose2d(64, 64, kernel_size=6, stride=1)
-        self.deconv2 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2)
-        self.deconv3 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2)
-        self.deconv4 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2)
-
-    def forward(self, x):
-
-        out = x
-
-        out = self.deconv1(out)
-        out = nn.functional.relu(out)
-        out = self.deconv2(out)
-        out = nn.functional.relu(out)
-        out = self.deconv3(out)
-        out = nn.functional.relu(out)
-        out = self.deconv4(out)
-        out = nn.functional.relu(out)
-
-        return out
 
 
 class PolicyHead(nn.Module):
@@ -79,8 +27,8 @@ class PolicyHead(nn.Module):
 
         super(PolicyHead, self).__init__()
 
-        self.fc1 = nn.Linear(64, 64)
-        self.fc2 = nn.Linear(64, num_outputs)
+        self.fc1 = nn.Linear(1024, 1024)
+        self.fc2 = nn.Linear(1024, num_outputs)
 
     def forward(self, x):
 
@@ -100,8 +48,8 @@ class ValueHead(nn.Module):
 
         super(ValueHead, self).__init__()
 
-        self.fc1 = nn.Linear(64, 64)
-        self.fc2 = nn.Linear(64, 1)
+        self.fc1 = nn.Linear(1024, 1024)
+        self.fc2 = nn.Linear(1024, 1)
 
     def forward(self, x):
 
@@ -142,9 +90,11 @@ class MasterModel(TorchModelV2, nn.Module):
         self.policy_head = PolicyHead(num_outputs)
         self.value_head = ValueHead()
 
+        """
         self.hidden_fc = nn.Linear(in_features=shape[0] * shape[1] * shape[2], out_features=256)
         self.logits_fc = nn.Linear(in_features=256, out_features=num_outputs)
         self.value_fc = nn.Linear(in_features=256, out_features=1)
+        """
         
     @override(TorchModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -153,10 +103,11 @@ class MasterModel(TorchModelV2, nn.Module):
         obs = obs.permute(0, 3, 1, 2)  # NHWC => NCHW
         
         latent_obs = self.encoder(obs)
-        reconstruction = self.decoder(latent_obs)
+        #decoder_input = latent_obs.reshape(-1, 256*2*2, 1, 1)
+        #reconstruction = self.decoder(decoder_input)
 
-        policy = self.policy_head(latent_obs.reshape(-1, 64))
-        value = self.value_head(latent_obs.reshape(-1, 64))
+        policy = self.policy_head(latent_obs.reshape(-1, 1024))
+        value = self.value_head(latent_obs.reshape(-1, 1024))
         self._value = value.squeeze(1)
 
         #next_obs, reward, terminal = self.world_model(latent_obs, policy)

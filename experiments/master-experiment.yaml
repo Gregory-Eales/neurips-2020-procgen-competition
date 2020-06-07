@@ -1,6 +1,6 @@
 master-experiment:
     env: procgen_env_wrapper
-    run: MasterAgent
+    run: PPO
 
 
     # Can be replaced by any of the available agents as described at :
