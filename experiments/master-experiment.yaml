@@ -1,6 +1,8 @@
-procgen-starter-example:
-    env: procgen_env_wrapper  # Change this at your own risk :D
+master-experiment:
+    env: procgen_env_wrapper
     run: MasterAgent
+
+
     # Can be replaced by any of the available agents as described at :
     # https://github.com/ray-project/ray/blob/master/rllib/agents/registry.py#L103
     #
@@ -16,7 +18,7 @@ procgen-starter-example:
     # === Stop Conditions ===
     ################################################
     stop:
-        timesteps_total: 3000  # 100
+        timesteps_total: 1200  # 100
 
     ################################################
     # === Settings for Checkpoints ===
@@ -94,7 +96,7 @@ procgen-starter-example:
         # NOTE: Some agents may not support `torch` yet and throw an error.
         use_pytorch: True
 
-        ################################################
+        ###############################################
         ################################################
         # === Settings for Model ===
         ################################################

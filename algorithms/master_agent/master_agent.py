@@ -1,52 +1,28 @@
-import numpy as np
+from ray.rllib.agents.trainer import with_common_config
+from ray.rllib.agents.trainer_template import build_trainer
+from .master_policy import MasterPolicy
 
-from ray.rllib.agents.trainer import Trainer, with_common_config
-from ray.rllib.utils.annotations import override
+from ray.rllib.agents import Trainer
 
-"""
-Note : This implementation has been adapted from : 
-    https://github.com/ray-project/ray/blob/master/rllib/contrib/random_agent/random_agent.py
-"""
 
 # yapf: disable
 # __sphinx_doc_begin__
-class MasterAgent(Trainer):
-    """Policy that takes random actions and never learns."""
-
-    _name = "MasterAgent"
-    _default_config = with_common_config({
-        "rollouts_per_iteration": 10,
-    })
-
-    @override(Trainer)
-    def _init(self, config, env_creator):
-        self.env = env_creator(config["env_config"])
-
-    @override(Trainer)
-    def _train(self):
-        rewards = []
-        steps = 0
-        for _ in range(self.config["rollouts_per_iteration"]):
-            obs = self.env.reset()
-            done = False
-            reward = 0.0
-            while not done:
-                action = self.env.action_space.sample()
-                obs, r, done, info = self.env.step(action)
-                reward += r
-                steps += 1
-            rewards.append(reward)
-        return {
-            "episode_reward_mean": np.mean(rewards),
-            "timesteps_this_iter": steps,
-        }
+DEFAULT_CONFIG = with_common_config({
+    # No remote workers by default.
+    "num_workers": 0,
+    # Learning rate.
+    "lr": 0.0004,
+})
 # __sphinx_doc_end__
-# don't enable yapf after, it's buggy here
+# yapf: enable
 
 
-if __name__ == "__main__":
-    trainer = MasterAgent(
-        env="CartPole-v0", config={"rollouts_per_iteration": 10})
-    result = trainer.train()
-    assert result["episode_reward_mean"] > 10, result
-    print("Test: OK")
+def get_policy_class(config):
+        return MasterPolicy
+
+
+MasterAgent= build_trainer(
+    name="custom/MasterAgent",
+    default_config=DEFAULT_CONFIG,
+    default_policy=MasterPolicy,
+    get_policy_class=get_policy_class)
