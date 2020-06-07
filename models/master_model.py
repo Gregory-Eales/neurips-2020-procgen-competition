@@ -4,9 +4,6 @@ from ray.rllib.utils.annotations import override
 from ray.rllib.utils import try_import_torch
 from ray.rllib.models.modelv2 import ModelV2
 
-import logging
-from ray.tune.logger import Logger, UnifiedLogger
-logger = logging.getLogger(__name__)
 
 from collections import OrderedDict
 import gym
@@ -28,10 +25,10 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 128, kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(128, 256, kernel_size=2, stride=2)
-        self.conv3 = nn.Conv2d(256, 256, kernel_size=2, stride=2)
-        self.conv4 = nn.Conv2d(256, 256, kernel_size=8, stride=1)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=4, stride=2)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=4, stride=2)
+        self.conv4 = nn.Conv2d(64, 64, kernel_size=6, stride=1)
 
 
     def forward(self, x):
@@ -55,10 +52,10 @@ class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
 
-        self.deconv1 = nn.ConvTranspose2d(256, 256, kernel_size=8, stride=1)
-        self.deconv2 = nn.ConvTranspose2d(256, 256, kernel_size=2, stride=2)
-        self.deconv3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.deconv4 = nn.ConvTranspose2d(128, 3, kernel_size=2, stride=2)
+        self.deconv1 = nn.ConvTranspose2d(64, 64, kernel_size=6, stride=1)
+        self.deconv2 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2)
+        self.deconv3 = nn.ConvTranspose2d(64, 64, kernel_size=4, stride=2)
+        self.deconv4 = nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2)
 
     def forward(self, x):
 
@@ -78,19 +75,50 @@ class Decoder(nn.Module):
 
 class PolicyHead(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_outputs):
 
-        pass
+        super(PolicyHead, self).__init__()
+
+        self.fc1 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(64, num_outputs)
+
+    def forward(self, x):
+
+        out = x
+
+        out = self.fc1(out)
+        out = nn.functional.relu(out)
+        out = self.fc2(out)
+        #out = nn.functional.relu(out)
+
+        return out
+
 
 class ValueHead(nn.Module):
 
     def __init__(self):
 
-        pass
+        super(ValueHead, self).__init__()
+
+        self.fc1 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(64, 1)
+
+    def forward(self, x):
+
+        out = x
+
+        out = self.fc1(out)
+        out = nn.functional.relu(out)
+        out = self.fc2(out)
+        #out = nn.functional.relu(out)
+
+        return out
 
 class TransitionModel(nn.Module):
 
     def __init__(self):
+
+        super(TransitionModel, self).__init__()
 
         pass
 
@@ -108,31 +136,32 @@ class MasterModel(TorchModelV2, nn.Module):
         h, w, c = obs_space.shape
         shape = (c, h, w)
 
-        conv_seqs = []
-        for out_channels in [16, 32, 32]:
-            conv_seq = ConvSequence(shape, out_channels)
-            shape = conv_seq.get_output_shape()
-            conv_seqs.append(conv_seq)
-        self.conv_seqs = nn.ModuleList(conv_seqs)
+        self.encoder = Encoder()
+        self.decoder = Decoder()
+
+        self.policy_head = PolicyHead(num_outputs)
+        self.value_head = ValueHead()
+
         self.hidden_fc = nn.Linear(in_features=shape[0] * shape[1] * shape[2], out_features=256)
         self.logits_fc = nn.Linear(in_features=256, out_features=num_outputs)
         self.value_fc = nn.Linear(in_features=256, out_features=1)
         
     @override(TorchModelV2)
     def forward(self, input_dict, state, seq_lens):
-        x = input_dict["obs"].float()
-        x = x / 255.0  # scale to 0-1
-        x = x.permute(0, 3, 1, 2)  # NHWC => NCHW
-        for conv_seq in self.conv_seqs:
-            x = conv_seq(x)
-        x = torch.flatten(x, start_dim=1)
-        x = nn.functional.relu(x)
-        x = self.hidden_fc(x)
-        x = nn.functional.relu(x)
-        logits = self.logits_fc(x)
-        value = self.value_fc(x)
+        obs = input_dict["obs"].float()
+        obs = obs / 255.0  # scale to 0-1
+        obs = obs.permute(0, 3, 1, 2)  # NHWC => NCHW
+        
+        latent_obs = self.encoder(obs)
+        reconstruction = self.decoder(latent_obs)
+
+        policy = self.policy_head(latent_obs.reshape(-1, 64))
+        value = self.value_head(latent_obs.reshape(-1, 64))
         self._value = value.squeeze(1)
-        return logits, state
+
+        #next_obs, reward, terminal = self.world_model(latent_obs, policy)
+
+        return policy, state
 
     @override(TorchModelV2)
     def value_function(self):
@@ -145,7 +174,6 @@ class MasterModel(TorchModelV2, nn.Module):
         All this does is unpack the tensor batch to call this model with the
         right input dict, state, and seq len arguments.
         """
-
         input_dict = {
             "obs": train_batch[SampleBatch.CUR_OBS],
             "is_training": is_training,
@@ -163,8 +191,6 @@ class MasterModel(TorchModelV2, nn.Module):
 
     @override(TorchModelV2)
     def custom_loss(self, policy_loss, loss_inputs):
-    
-
         return policy_loss
 
 # Register model in ModelCatalog
@@ -174,14 +200,23 @@ ModelCatalog.register_custom_model("master_model", MasterModel)
 
 if __name__ == "__main__":
 
+    from ray.rllib.contrib import alpha_zero
+
     x = torch.ones(1, 3, 64, 64)
 
     print(x.shape)
 
     encoder = Encoder()
     decoder = Decoder()
+    policy = PolicyHead(15)
+    value = ValueHead()
 
     y = encoder.forward(x)
+
+    print(y.shape)
+
+    print(policy(y.reshape(-1, 64)).shape)
+    print(value(y.reshape(-1, 64)).shape)
 
     print(y.shape)
 
