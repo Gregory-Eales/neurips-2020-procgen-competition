@@ -23,12 +23,12 @@ torch, nn = try_import_torch()
 
 class PolicyHead(nn.Module):
 
-    def __init__(self, num_outputs):
+    def __init__(self, num_hidden, num_outputs):
 
         super(PolicyHead, self).__init__()
 
-        self.fc1 = nn.Linear(1024, 1024)
-        self.fc2 = nn.Linear(1024, num_outputs)
+        self.fc1 = nn.Linear(num_hidden, num_hidden)
+        self.fc2 = nn.Linear(num_hidden, num_outputs)
 
     def forward(self, x):
 
@@ -37,19 +37,18 @@ class PolicyHead(nn.Module):
         out = self.fc1(out)
         out = nn.functional.relu(out)
         out = self.fc2(out)
-        #out = nn.functional.relu(out)
 
         return out
 
 
 class ValueHead(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_hidden):
 
         super(ValueHead, self).__init__()
 
-        self.fc1 = nn.Linear(1024, 1024)
-        self.fc2 = nn.Linear(1024, 1)
+        self.fc1 = nn.Linear(num_hidden, num_hidden)
+        self.fc2 = nn.Linear(num_hidden, 1)
 
     def forward(self, x):
 
@@ -58,7 +57,6 @@ class ValueHead(nn.Module):
         out = self.fc1(out)
         out = nn.functional.relu(out)
         out = self.fc2(out)
-        #out = nn.functional.relu(out)
 
         return out
 
@@ -70,6 +68,28 @@ class TransitionModel(nn.Module):
 
         pass
 
+
+class LinearResBlock(nn.Module):
+
+    def __init__(self, num_hidden):
+
+        super(LinearResBlock, self).__init__()
+
+
+        self.fc1 = nn.Linear(num_hidden, num_hidden)
+        self.fc2 = nn.Linear(num_hidden, num_hidden)
+
+
+    def forward(self, x):
+
+        out = x
+
+        out = self.fc1(out)
+        out = nn.functional.relu(out)
+        out = self.fc2(out)
+        out = nn.functional.relu(out)
+
+        return out + x
 
 
 
@@ -87,8 +107,17 @@ class MasterModel(TorchModelV2, nn.Module):
         self.encoder = Encoder()
         self.decoder = Decoder()
 
-        self.policy_head = PolicyHead(num_outputs)
-        self.value_head = ValueHead()
+        self.policy_head = PolicyHead(64, num_outputs)
+        self.value_head = ValueHead(64)
+
+
+        self.fc = nn.Linear(256, 64)
+
+
+        self.lb1 = LinearResBlock(64)
+        self.lb2 = LinearResBlock(64)
+        self.lb3 = LinearResBlock(64)
+        self.lb4 = LinearResBlock(64)
 
         """
         self.hidden_fc = nn.Linear(in_features=shape[0] * shape[1] * shape[2], out_features=256)
@@ -106,8 +135,16 @@ class MasterModel(TorchModelV2, nn.Module):
         #decoder_input = latent_obs.reshape(-1, 256*2*2, 1, 1)
         #reconstruction = self.decoder(decoder_input)
 
-        policy = self.policy_head(latent_obs.reshape(-1, 1024))
-        value = self.value_head(latent_obs.reshape(-1, 1024))
+        latent_obs = latent_obs.reshape(-1, 256)
+
+        l = self.fc(latent_obs)
+        l = self.lb1(l)
+        l = self.lb2(l)
+        l = self.lb3(l)
+        l = self.lb4(l)
+
+        policy = self.policy_head(l)
+        value = self.value_head(l)
         self._value = value.squeeze(1)
 
         #next_obs, reward, terminal = self.world_model(latent_obs, policy)
