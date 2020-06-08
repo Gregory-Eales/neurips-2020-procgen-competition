@@ -17,6 +17,8 @@ class Encoder(nn.Module):
 
         out = x
 
+
+
         out = self.conv1(out)
         out = nn.functional.relu(out)
         out = self.conv2(out)
