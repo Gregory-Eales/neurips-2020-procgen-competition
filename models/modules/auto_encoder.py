@@ -7,10 +7,10 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=4, stride=2)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=4, stride=2)
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=4, stride=2)
+        self.conv2 = nn.Conv2d(16, 16, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(16, 32, kernel_size=4, stride=2)
+        self.conv4 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
 
 
     def forward(self, x):
@@ -34,7 +34,7 @@ class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
 
-        self.deconv1 = nn.ConvTranspose2d(1024, 128, kernel_size=5, stride=2)
+        self.deconv1 = nn.ConvTranspose2d(256, 128, kernel_size=5, stride=2)
         self.deconv2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
         self.deconv3 = nn.ConvTranspose2d(64, 64, kernel_size=6, stride=2)
         self.deconv4 = nn.ConvTranspose2d(64, 3, kernel_size=6, stride=2)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     y = encoder.forward(x)
 
     print(y.shape)
-    y = y.reshape(-1, 256*2*2, 1, 1)
+    y = y.reshape(-1, 64*2*2, 1, 1)
     print(y.shape)
 
     y = decoder.forward(y)
