@@ -18,7 +18,7 @@ master-experiment:
     # === Stop Conditions ===
     ################################################
     stop:
-        timesteps_total: 800000 #8000000 
+        timesteps_total: 8000000 #8000000 
 
     ################################################
     # === Settings for Checkpoints ===
