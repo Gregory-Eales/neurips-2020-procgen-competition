@@ -23,10 +23,9 @@ def _import_master_agent():
 
 CUSTOM_ALGORITHMS = {}
 
-"""
+
 CUSTOM_ALGORITHMS = {
     "custom/CustomRandomAgent": _import_custom_random_agent,
     "custom/MasterAgent": _import_master_agent,
     "MasterAgent": _import_master_agent
 }
-"""

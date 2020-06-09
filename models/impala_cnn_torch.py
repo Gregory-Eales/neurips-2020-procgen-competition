@@ -91,4 +91,21 @@ class ImpalaCNN(TorchModelV2, nn.Module):
         assert self._value is not None, "must call forward() first"
         return self._value
 
+
 ModelCatalog.register_custom_model("impala_cnn_torch", ImpalaCNN)
+
+
+
+if __name__ == "__main__":
+
+    model = ImpalaCNN(torch.zeros(64, 64, 3), 15, 15, None, None)
+    pp=0
+    for p in list(model.parameters()):
+        nn=1
+        for s in list(p.size()):
+            nn = nn*s
+        pp += nn
+    print(pp)
+
+
+

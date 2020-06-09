@@ -1,15 +1,13 @@
-master-experiment:
-    env: procgen_env_wrapper
-    run: MasterAgent
-
-
-    # Can be replaced by any of the available agents as described at :
+procgen-ppo:
+    env: procgen_env_wrapper  # Change this at your own risk :D
+    run: PPO
+    # Can be replaced by any of the available agents as described at : 
     # https://github.com/ray-project/ray/blob/master/rllib/agents/registry.py#L103
-    #
+    # 
     # Internally, rllib uses the terminology of Trainable, Algorithms, Agents depending
     # on the context in which it is used. In this repository, we will consistently
     # use the terminology of "Algorithms" to refer to these Trainables/Agents.
-    #
+    # 
     # This can also be replaced by a custom "algorithm"
     # For addition of custom algorithms,
     # Please refer to :
@@ -18,7 +16,7 @@ master-experiment:
     # === Stop Conditions ===
     ################################################
     stop:
-        timesteps_total: 2400 #8000000 
+        timesteps_total: 2400 #8000000
 
     ################################################
     # === Settings for Checkpoints ===
@@ -129,20 +127,46 @@ master-experiment:
         # NOTE: Some agents may not support `torch` yet and throw an error.
         use_pytorch: True
 
-        ###############################################
+        ################################################
         ################################################
         # === Settings for Model ===
         ################################################
         ################################################
         model:
+            # These options are used when not using a custom model, to use a default model,
+            # comment out the `custom_model` field and then un-comment the below model options.
+
             # === Built-in options ===
             # More information on built in Models are available here :
             # https://ray.readthedocs.io/en/stable/rllib-models.html#built-in-models-and-preprocessors
             #
             # Filter config. List of [out_channels, kernel, stride] for each filter
-            
-            
-            
+            # conv_filters: null
+            # Nonlinearity for built-in convnet
+            # conv_activation: relu
+            # Nonlinearity for fully connected net (tanh, relu)
+            # fcnet_activation: tanh
+            # Number of hidden layers for fully connected net
+            # fcnet_hiddens: [256, 256]
+            # Whether to skip the final linear layer used to resize the hidden layer
+            # outputs to size `num_outputs`. If True, then the last hidden layer
+            # should already match num_outputs.
+            # no_final_linear: false
+            # Whether layers should be shared for the value function
+            # vf_share_layers: true
+
+            # == LSTM ==
+            # Whether to wrap the model with a LSTM
+            # use_lstm: false
+            # Max seq len for training the LSTM, defaults to 20
+            # max_seq_len: 20
+            # Size of the LSTM cell
+            # lstm_cell_size: 256
+            # Whether to feed a_{t-1}, r_{t-1} to LSTM
+            # lstm_use_prev_action_reward: false
+            # When using modelv1 models with a modelv2 algorithm, you may have to
+            # define the state shape here (e.g., [256, 256]).
+            # state_shape: null
 
             # === Options for custom models ===
             # Name of a custom model to use
@@ -203,7 +227,7 @@ master-experiment:
         # evenly sized batches, but increases variance as the reward-to-go will
         # need to be estimated at truncation boundaries.
         batch_mode: truncate_episodes
-        
+
         ################################################
         ################################################
         # === Advanced Resource Settings ===
@@ -217,7 +241,7 @@ master-experiment:
         num_gpus_per_worker: 0
         # Number of CPUs to allocate for the trainer. Note: this only takes effect
         # when running in Tune. Otherwise, the trainer runs in the main program.
-        num_cpus_for_driver: 1        
+        num_cpus_for_driver: 1
 
         ################################################
         ################################################
@@ -229,10 +253,6 @@ master-experiment:
         # (e.g., 0.3 GPUs).
         # Note : If GPUs are not available, this will be overriden by the AIcrowd evaluators to 0.
         num_gpus: 0
-        # Training batch size, if applicable. Should be >= rollout_fragment_length.
-        # Samples batches will be concatenated together to a batch of this size,
-        # which is then passed to SGD.
-        train_batch_size: 2048
 
         ################################################
         ################################################
@@ -271,3 +291,4 @@ master-experiment:
         # each worker, so that identically configured trials will have identical
         # results. This makes experiments reproducible.
         seed: null
+        
