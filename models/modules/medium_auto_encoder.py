@@ -38,8 +38,6 @@ class MediumEncoder(nn.Module):
 
         return mu + eps*std
 
-
-
 class MediumDecoder(nn.Module):
 
     def __init__(self):

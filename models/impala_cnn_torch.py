@@ -46,7 +46,6 @@ class ConvSequence(nn.Module):
 class ImpalaCNN(TorchModelV2, nn.Module):
     """
     Network from IMPALA paper implemented in ModelV2 API.
-
     Based on https://github.com/ray-project/ray/blob/master/rllib/models/tf/visionnet_v2.py
     and https://github.com/openai/baselines/blob/9ee399f5b20cd70ac0a871927a6cf043b478193f/baselines/common/models.py#L28
     """
@@ -91,21 +90,4 @@ class ImpalaCNN(TorchModelV2, nn.Module):
         assert self._value is not None, "must call forward() first"
         return self._value
 
-
 ModelCatalog.register_custom_model("impala_cnn_torch", ImpalaCNN)
-
-
-
-if __name__ == "__main__":
-
-    model = ImpalaCNN(torch.zeros(64, 64, 3), 15, 15, None, None)
-    pp=0
-    for p in list(model.parameters()):
-        nn=1
-        for s in list(p.size()):
-            nn = nn*s
-        pp += nn
-    print(pp)
-
-
-

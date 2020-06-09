@@ -7,8 +7,8 @@ class MiniEncoder(nn.Module):
     def __init__(self):
         super(MiniEncoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=4, stride=2)
-        self.conv2 = nn.Conv2d(16, 16, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=4, stride=2)
+        self.conv2 = nn.Conv2d(32, 16, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(16, 16, kernel_size=4, stride=2)
         self.conv4 = nn.Conv2d(16, 16, kernel_size=4, stride=2)
 
@@ -19,8 +19,6 @@ class MiniEncoder(nn.Module):
     def forward(self, x):
 
         out = x
-
-
 
         out = self.conv1(out)
         out = nn.functional.relu(out)
@@ -49,8 +47,8 @@ class MiniDecoder(nn.Module):
 
         self.deconv1 = nn.ConvTranspose2d(64, 16, kernel_size=5, stride=2)
         self.deconv2 = nn.ConvTranspose2d(16, 16, kernel_size=5, stride=2)
-        self.deconv3 = nn.ConvTranspose2d(16, 64, kernel_size=6, stride=2)
-        self.deconv4 = nn.ConvTranspose2d(64, 3, kernel_size=6, stride=2)
+        self.deconv3 = nn.ConvTranspose2d(16, 32, kernel_size=6, stride=2)
+        self.deconv4 = nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2)
 
     def forward(self, x):
 

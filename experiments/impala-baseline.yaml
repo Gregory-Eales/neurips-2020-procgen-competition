@@ -16,7 +16,7 @@ procgen-ppo:
     # === Stop Conditions ===
     ################################################
     stop:
-        timesteps_total: 1200 #8000000
+        timesteps_total: 8000000
 
     ################################################
     # === Settings for Checkpoints ===
@@ -125,7 +125,7 @@ procgen-ppo:
         # Use PyTorch (instead of tf). If using `rllib train`, this can also be
         # enabled with the `--torch` flag.
         # NOTE: Some agents may not support `torch` yet and throw an error.
-        use_pytorch: False
+        use_pytorch: True
 
         ################################################
         ################################################
@@ -187,7 +187,7 @@ procgen-ppo:
             # Examples of implementing the model in Keras is also available
             # here :
             # https://github.com/ray-project/ray/blob/master/rllib/examples/custom_keras_model.py
-            custom_model: impala_cnn_tf
+            custom_model: impala_cnn_torch
             # Extra options to pass to custom class
             custom_options: {}
 
@@ -234,7 +234,7 @@ procgen-ppo:
         ################################################
         ################################################
         # Number of CPUs to allocate per worker.
-        num_cpus_per_worker: 0.1
+        num_cpus_per_worker: 1
         # Number of GPUs to allocate per worker. This can be fractional. This is
         # usually needed only if your env itself requires a GPU (i.e., it is a
         # GPU-intensive video game), or model inference is unusually expensive.
@@ -291,4 +291,3 @@ procgen-ppo:
         # each worker, so that identically configured trials will have identical
         # results. This makes experiments reproducible.
         seed: null
-        

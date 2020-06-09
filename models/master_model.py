@@ -15,26 +15,28 @@ from ray.rllib.utils.annotations import DeveloperAPI, PublicAPI
 import time
 
 
-from models.modules.mini_auto_encoder import MiniEncoder, MiniDecoder
-from models.modules.small_auto_encoder import SmallEncoder, SmallDecoder
-from models.modules.medium_auto_encoder import MediumEncoder, MediumDecoder
-from models.modules.large_auto_encoder import LargeEncoder, LargeDecoder
-from models.modules.policy_head import PolicyHead
-from models.modules.value_head import ValueHead
-from models.modules.res_block import LinearResBlock
-from models.modules.ensemble import Ensemble
-from models.modules.dynamics_model import DynamicsModel
-"""
-from modules.mini_auto_encoder import MiniEncoder, MiniDecoder
-from modules.large_auto_encoder import LargeEncoder, LargeDecoder
-from modules.medium_auto_encoder import MediumEncoder, MediumDecoder
-from modules.small_auto_encoder import SmallEncoder, SmallDecoder
-from modules.policy_head import PolicyHead
-from modules.value_head import ValueHead
-from modules.res_block import LinearResBlock
-from modules.ensemble import Ensemble
-from modules.dynamics_model import DynamicsModel
-"""
+if __name__ == "__main__":
+    from modules.mini_auto_encoder import MiniEncoder, MiniDecoder
+    from modules.large_auto_encoder import LargeEncoder, LargeDecoder
+    from modules.medium_auto_encoder import MediumEncoder, MediumDecoder
+    from modules.small_auto_encoder import SmallEncoder, SmallDecoder
+    from modules.policy_head import PolicyHead
+    from modules.value_head import ValueHead
+    from modules.res_block import LinearResBlock
+    from modules.ensemble import Ensemble
+    from modules.dynamics_model import DynamicsModel
+
+else:
+    from models.modules.mini_auto_encoder import MiniEncoder, MiniDecoder
+    from models.modules.small_auto_encoder import SmallEncoder, SmallDecoder
+    from models.modules.medium_auto_encoder import MediumEncoder, MediumDecoder
+    from models.modules.large_auto_encoder import LargeEncoder, LargeDecoder
+    from models.modules.policy_head import PolicyHead
+    from models.modules.value_head import ValueHead
+    from models.modules.res_block import LinearResBlock
+    from models.modules.ensemble import Ensemble
+    from models.modules.dynamics_model import DynamicsModel
+
 
 torch, nn = try_import_torch()
 
@@ -55,8 +57,8 @@ class MasterModel(TorchModelV2, nn.Module):
         linear_num = 64
 
         
-        self.encoder = MiniEncoder()
-        self.decoder = MiniDecoder()
+        self.encoder = MediumEncoder()
+        self.decoder = MediumDecoder()
         
 
         self.policy_head = PolicyHead(linear_num, num_outputs)
@@ -91,7 +93,7 @@ class MasterModel(TorchModelV2, nn.Module):
 
         #l = self.fc(latent_obs)
         
-        l = self.lb1(latent_obs)
+        l = self.lb1(latent_obs.detach())
         l = self.lb2(l)
         l = self.lb3(l)
         l = self.lb4(l)
