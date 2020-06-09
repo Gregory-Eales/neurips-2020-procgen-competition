@@ -15,82 +15,15 @@ from ray.rllib.utils.annotations import DeveloperAPI, PublicAPI
 import time
 
 
-from models.modules.auto_encoder import Encoder, Decoder
+from models.modules.large_auto_encoder import LargeEncoder, LargeDecoder
+from models.modules.policy_head import PolicyHead
+from models.modules.value_head import ValueHead
+from models.modules.res_block import LinearResBlock
+from models.modules.ensemble import Ensemble
+from models.modules.dynamics_model import DynamicsModel
 
 
 torch, nn = try_import_torch()
-
-
-class PolicyHead(nn.Module):
-
-    def __init__(self, num_hidden, num_outputs):
-
-        super(PolicyHead, self).__init__()
-
-        self.fc1 = nn.Linear(num_hidden, num_hidden)
-        self.fc2 = nn.Linear(num_hidden, num_outputs)
-
-    def forward(self, x):
-
-        out = x
-
-        out = self.fc1(out)
-        out = nn.functional.relu(out)
-        out = self.fc2(out)
-
-        return out
-
-
-class ValueHead(nn.Module):
-
-    def __init__(self, num_hidden):
-
-        super(ValueHead, self).__init__()
-
-        self.fc1 = nn.Linear(num_hidden, num_hidden)
-        self.fc2 = nn.Linear(num_hidden, 1)
-
-    def forward(self, x):
-
-        out = x
-
-        out = self.fc1(out)
-        out = nn.functional.relu(out)
-        out = self.fc2(out)
-
-        return out
-
-class TransitionModel(nn.Module):
-
-    def __init__(self):
-
-        super(TransitionModel, self).__init__()
-
-        pass
-
-
-class LinearResBlock(nn.Module):
-
-    def __init__(self, num_hidden):
-
-        super(LinearResBlock, self).__init__()
-
-
-        self.fc1 = nn.Linear(num_hidden, num_hidden)
-        self.fc2 = nn.Linear(num_hidden, num_hidden)
-
-
-    def forward(self, x):
-
-        out = x
-
-        out = self.fc1(out)
-        out = nn.functional.relu(out)
-        out = self.fc2(out)
-        out = nn.functional.relu(out)
-
-        return out + x
-
 
 
 class MasterModel(TorchModelV2, nn.Module):
@@ -104,14 +37,16 @@ class MasterModel(TorchModelV2, nn.Module):
         h, w, c = obs_space.shape
         shape = (c, h, w)
 
-        self.encoder = Encoder()
-        self.decoder = Decoder()
+        linear_num = 0
+
+        self.encoder = LargeEncoder()
+        self.decoder = LargeDecoder()
 
         self.policy_head = PolicyHead(64, num_outputs)
         self.value_head = ValueHead(64)
 
 
-        self.fc = nn.Linear(256, 64)
+        self.fc = nn.Linear(1024, 64)
 
 
         self.lb1 = LinearResBlock(64)
@@ -134,8 +69,6 @@ class MasterModel(TorchModelV2, nn.Module):
         latent_obs = self.encoder(obs)
         #decoder_input = latent_obs.reshape(-1, 256*2*2, 1, 1)
         #reconstruction = self.decoder(decoder_input)
-
-        latent_obs = latent_obs.reshape(-1, 256)
 
         l = self.fc(latent_obs)
         l = self.lb1(l)
@@ -162,6 +95,7 @@ class MasterModel(TorchModelV2, nn.Module):
         All this does is unpack the tensor batch to call this model with the
         right input dict, state, and seq len arguments.
         """
+
         input_dict = {
             "obs": train_batch[SampleBatch.CUR_OBS],
             "is_training": is_training,
@@ -177,40 +111,17 @@ class MasterModel(TorchModelV2, nn.Module):
             i += 1
         return self.__call__(input_dict, states, train_batch.get("seq_lens"))
 
-    @override(TorchModelV2)
-    def custom_loss(self, policy_loss, loss_inputs):
-        return policy_loss
+
+
+
 
 # Register model in ModelCatalog
 ModelCatalog.register_custom_model("master_model", MasterModel)
 
 
-
 if __name__ == "__main__":
 
-    from ray.rllib.contrib import alpha_zero
-
-    x = torch.ones(1, 3, 64, 64)
-
-    print(x.shape)
-
-    encoder = Encoder()
-    decoder = Decoder()
-    policy = PolicyHead(15)
-    value = ValueHead()
-
-    y = encoder.forward(x)
-
-    print(y.shape)
-
-    print(policy(y.reshape(-1, 64)).shape)
-    print(value(y.reshape(-1, 64)).shape)
-
-    print(y.shape)
-
-    y = decoder.forward(y)
-
-    print(y.shape)
+    pass
 
 
 

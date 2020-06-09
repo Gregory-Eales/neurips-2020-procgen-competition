@@ -7,8 +7,8 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=4, stride=2)
-        self.conv2 = nn.Conv2d(16, 16, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(3, 8, kernel_size=4, stride=2)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(16, 32, kernel_size=4, stride=2)
         self.conv4 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
 
