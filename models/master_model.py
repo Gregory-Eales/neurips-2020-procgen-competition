@@ -48,17 +48,16 @@ class MasterModel(TorchModelV2, nn.Module):
 
         self.fc = nn.Linear(1024, 64)
 
-
         self.lb1 = LinearResBlock(64)
         self.lb2 = LinearResBlock(64)
         self.lb3 = LinearResBlock(64)
         self.lb4 = LinearResBlock(64)
 
-        """
-        self.hidden_fc = nn.Linear(in_features=shape[0] * shape[1] * shape[2], out_features=256)
-        self.logits_fc = nn.Linear(in_features=256, out_features=num_outputs)
-        self.value_fc = nn.Linear(in_features=256, out_features=1)
-        """
+        self.last_latent_obs = None
+
+
+        self.vae_loss = torch.nn.MSELoss()
+
         
     @override(TorchModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -67,8 +66,8 @@ class MasterModel(TorchModelV2, nn.Module):
         obs = obs.permute(0, 3, 1, 2)  # NHWC => NCHW
         
         latent_obs = self.encoder(obs)
-        #decoder_input = latent_obs.reshape(-1, 256*2*2, 1, 1)
-        #reconstruction = self.decoder(decoder_input)
+
+        self.last_latent_obs = latent_obs
 
         l = self.fc(latent_obs)
         l = self.lb1(l)
@@ -89,27 +88,33 @@ class MasterModel(TorchModelV2, nn.Module):
         assert self._value is not None, "must call forward() first"
         return self._value
 
-    @override(TorchModelV2)
-    def from_batch(self, train_batch, is_training=True):
-        """Convenience function that calls this model with a tensor batch.
-        All this does is unpack the tensor batch to call this model with the
-        right input dict, state, and seq len arguments.
-        """
 
-        input_dict = {
-            "obs": train_batch[SampleBatch.CUR_OBS],
-            "is_training": is_training,
+    @override(ModelV2)
+    def custom_loss(self, policy_loss, loss_inputs):
+        # Create a new input reader per worker.
+        reader = JsonReader(self.input_files)
+        input_ops = reader.tf_input_ops()
+
+        # Define a secondary loss by building a graph copy with weight sharing.
+        obs = restore_original_dimensions(
+            tf.cast(input_ops["obs"], tf.float32), self.obs_space)
+        logits, _ = self.forward({"obs": obs}, [], None)
+
+        # You can also add self-supervised losses easily by referencing tensors
+        # created during _build_layers_v2(). For example, an autoencoder-style
+        # loss can be added as follows:
+        ae_loss = self.vae_loss(loss_inputs["obs"], self.decoder(self.last_latent_obs))
+   
+
+        return policy_loss + ae_loss
+
+    def custom_stats(self):
+        return {
+            "policy_loss": self.policy_loss,
+            "vae_loss": self.imitation_loss,
+            "ensemble_loss": self.imitation_loss,
+            "dynamics_loss": self.imitation_loss
         }
-        if SampleBatch.PREV_ACTIONS in train_batch:
-            input_dict["prev_actions"] = train_batch[SampleBatch.PREV_ACTIONS]
-        if SampleBatch.PREV_REWARDS in train_batch:
-            input_dict["prev_rewards"] = train_batch[SampleBatch.PREV_REWARDS]
-        states = []
-        i = 0
-        while "state_in_{}".format(i) in train_batch:
-            states.append(train_batch["state_in_{}".format(i)])
-            i += 1
-        return self.__call__(input_dict, states, train_batch.get("seq_lens"))
 
 
 

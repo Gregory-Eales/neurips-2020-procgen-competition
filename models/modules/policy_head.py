@@ -18,5 +18,6 @@ class PolicyHead(nn.Module):
         out = self.fc1(out)
         out = nn.functional.relu(out)
         out = self.fc2(out)
+        
 
         return out
