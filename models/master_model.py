@@ -15,6 +15,9 @@ from ray.rllib.utils.annotations import DeveloperAPI, PublicAPI
 import time
 
 
+import random
+
+
 if __name__ == "__main__":
     from modules.mini_auto_encoder import MiniEncoder, MiniDecoder
     from modules.large_auto_encoder import LargeEncoder, LargeDecoder
@@ -57,15 +60,15 @@ class MasterModel(TorchModelV2, nn.Module):
         linear_num = 64
 
         
-        self.encoder = MediumEncoder()
-        self.decoder = MediumDecoder()
+        self.encoder = SmallEncoder()
+        self.decoder = SmallDecoder()
         
 
         self.policy_head = PolicyHead(linear_num, num_outputs)
         self.value_head = ValueHead(linear_num)
 
 
-        #self.fc = nn.Linear(linear_num, linear_num)
+        self.fc = nn.Linear(256, linear_num)
 
         
         self.lb1 = LinearResBlock(linear_num)
@@ -80,6 +83,8 @@ class MasterModel(TorchModelV2, nn.Module):
         self.vae_loss_fn = torch.nn.MSELoss()
         self.vae_loss = None
 
+        self.count = 0
+
         
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -91,9 +96,10 @@ class MasterModel(TorchModelV2, nn.Module):
 
         self.last_latent_obs = latent_obs
 
-        #l = self.fc(latent_obs)
+        l = self.fc(latent_obs.detach())
+        l = nn.functional.leaky_relu(l)
         
-        l = self.lb1(latent_obs.detach())
+        l = self.lb1(l)
         l = self.lb2(l)
         l = self.lb3(l)
         l = self.lb4(l)
@@ -116,22 +122,32 @@ class MasterModel(TorchModelV2, nn.Module):
     @override(ModelV2)
     def custom_loss(self, policy_loss, train_batch):
 
-        obs = train_batch[SampleBatch.CUR_OBS]
+        # GET VAE LOSS
+        if self.count % 10 == 0:
 
-        obs = obs / 255.0  # scale to 0-1
-        obs = obs.permute(0, 3, 1, 2) 
+            obs = train_batch[SampleBatch.CUR_OBS]
+            obs = obs / 255.0  # scale to 0-1
+            obs = obs.permute(0, 3, 1, 2) 
+
+            vae_loss = self.vae_loss_fn(obs, self.decoder(self.last_latent_obs))
+            self.vae_loss = vae_loss
+            policy_loss += vae_loss
 
 
-        ae_loss = self.vae_loss_fn(obs, self.decoder(self.last_latent_obs))
-    
-        self.ae_loss = ae_loss
+        # GET DYNAMICS LOSS
 
-        return policy_loss + ae_loss
+
+        # GET ENSAMBLE LOSS
+
+        self.count += 1
+        return policy_loss
+
+
 
     def custom_stats(self):
         return {
             "policy_loss": self.policy_loss,
-            "vae_loss": self.imitation_loss,
+            "vae_loss": self.ae_loss,
             "ensemble_loss": self.imitation_loss,
             "dynamics_loss": self.imitation_loss
         }

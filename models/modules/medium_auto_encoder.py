@@ -50,7 +50,7 @@ class MediumDecoder(nn.Module):
 
     def forward(self, x):
 
-        out = x.reshape(-1, 256*4, 1, 1)
+        out = x.reshape(-1, 256*2, 1, 1)
 
         out = self.deconv1(out)
         out = nn.functional.relu(out)

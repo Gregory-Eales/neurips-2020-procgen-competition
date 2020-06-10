@@ -23,8 +23,9 @@ from ray.rllib.agents.ppo.ppo_torch_policy import kl_and_loss_stats, ValueNetwor
 
 def loss(policy, model, dist_class, train_batch):
 
-	surrogate_loss = ppo_surrogate_loss(policy, model, dist_class, train_batch)
-	return model.custom_loss(surrogate_loss, train_batch)
+    surrogate_loss = ppo_surrogate_loss(policy, model, dist_class, train_batch)
+    #return surrogate_loss
+    return model.custom_loss(surrogate_loss, train_batch)
 
 
 PPOTorchPolicy = build_torch_policy(

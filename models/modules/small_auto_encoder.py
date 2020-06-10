@@ -20,8 +20,6 @@ class SmallEncoder(nn.Module):
 
         out = x
 
-
-
         out = self.conv1(out)
         out = nn.functional.relu(out)
         out = self.conv2(out)
@@ -47,10 +45,10 @@ class SmallDecoder(nn.Module):
     def __init__(self):
         super(SmallDecoder, self).__init__()
 
-        self.deconv1 = nn.ConvTranspose2d(256, 128, kernel_size=5, stride=2)
-        self.deconv2 = nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2)
-        self.deconv3 = nn.ConvTranspose2d(64, 64, kernel_size=6, stride=2)
-        self.deconv4 = nn.ConvTranspose2d(64, 3, kernel_size=6, stride=2)
+        self.deconv1 = nn.ConvTranspose2d(256, 32, kernel_size=5, stride=2)
+        self.deconv2 = nn.ConvTranspose2d(32, 16, kernel_size=5, stride=2)
+        self.deconv3 = nn.ConvTranspose2d(16, 8, kernel_size=6, stride=2)
+        self.deconv4 = nn.ConvTranspose2d(8, 3, kernel_size=6, stride=2)
 
     def forward(self, x):
 
