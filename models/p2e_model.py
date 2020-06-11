@@ -44,7 +44,7 @@ else:
 torch, nn = try_import_torch()
 
 
-class MasterModel(TorchModelV2, nn.Module):
+class P2EModel(TorchModelV2, nn.Module):
 
     def __init__(self, obs_space, action_space, num_outputs, model_config,
                  name):
@@ -94,8 +94,6 @@ class MasterModel(TorchModelV2, nn.Module):
         
         latent_obs = self.encoder(obs)
 
-        self.last_latent_obs = latent_obs
-
         l = self.fc(latent_obs.detach())
         l = nn.functional.leaky_relu(l)
         
@@ -104,10 +102,14 @@ class MasterModel(TorchModelV2, nn.Module):
         l = self.lb3(l)
         l = self.lb4(l)
         
-
         policy = self.policy_head(l)
         value = self.value_head(l)
+
+
         self._value = value.squeeze(1)
+        self.vae_out = latent_obs
+        self.dynamics_out = dynamics_out
+        self.ensemble_out = ensemble_out
 
         #next_obs, reward, terminal = self.world_model(latent_obs, policy)
 
@@ -131,16 +133,22 @@ class MasterModel(TorchModelV2, nn.Module):
 
             vae_loss = self.vae_loss_fn(obs, self.decoder(self.last_latent_obs))
             self.vae_loss = vae_loss
-            policy_loss += vae_loss
+            
 
 
         # GET DYNAMICS LOSS
 
+        dynamics_loss = self.dynamics_loss_fn()
+        self.dynamics_loss = dynamics_loss
+            
 
         # GET ENSAMBLE LOSS
 
+        ensemble_loss = self.ensemble_loss_fn()
+        self.ensemble_loss = ensemble_loss 
+
         self.count += 1
-        return policy_loss
+        return policy_loss + dynamics_loss + vae_loss + ensemble_loss 
 
 
 
@@ -148,8 +156,8 @@ class MasterModel(TorchModelV2, nn.Module):
         return {
             "policy_loss": self.policy_loss,
             "vae_loss": self.ae_loss,
-            "ensemble_loss": self.imitation_loss,
-            "dynamics_loss": self.imitation_loss
+            "ensemble_loss": self.ensemble_loss,
+            "dynamics_loss": self.dynamics_loss
         }
 
 
@@ -157,12 +165,12 @@ class MasterModel(TorchModelV2, nn.Module):
 
 
 # Register model in ModelCatalog
-ModelCatalog.register_custom_model("master_model", MasterModel)
+ModelCatalog.register_custom_model("p2e_model", P2EModel)
 
 
 if __name__ == "__main__":
 
-    model = MasterModel(torch.zeros(64, 64, 3), 15, 15, None, None)
+    model = P2EModel(torch.zeros(64, 64, 3), 15, 15, None, None)
     pp=0
 
     for p in list(model.parameters()):
@@ -171,6 +179,3 @@ if __name__ == "__main__":
             nn = nn*s
         pp += nn
     print(pp)
-
-
-
