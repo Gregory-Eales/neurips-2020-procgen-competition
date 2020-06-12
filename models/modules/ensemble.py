@@ -9,9 +9,8 @@ class Ensemble(nn.Module):
 
 
         self.num_ensembles = num_ensembles
-
-
-        self.ensambles = nn.ModuleList()
+        self.ensembles = nn.ModuleList()
+        self.disagreement = None
 
 
         for i in range(self.num_ensembles):
@@ -25,11 +24,10 @@ class Ensemble(nn.Module):
         out = []
 
         for i in range(self.num_ensembles):
+            out.append(self.ensembles[i].forward(x))
 
+        std = torch.stack(out, dim=1).std()
 
-            out.append(self.ensambles[i].forward(x))
+        out = torch.stack(out, dim=0)
 
-
-
-
-        return out
+        return out, std

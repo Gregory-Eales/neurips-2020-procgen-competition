@@ -28,6 +28,7 @@ if __name__ == "__main__":
     from modules.res_block import LinearResBlock
     from modules.ensemble import Ensemble
     from modules.dynamics_model import DynamicsModel
+    from modules.rnn_submodule import RNNSubModule
 
 else:
     from models.modules.auto_encoders.mini_auto_encoder import MiniEncoder, MiniDecoder
@@ -39,6 +40,7 @@ else:
     from models.modules.res_block import LinearResBlock
     from models.modules.ensemble import Ensemble
     from models.modules.dynamics_model import DynamicsModel
+    from models.modules.rnn_submodule import RNNSubModule
 
 
 torch, nn = try_import_torch()
@@ -58,11 +60,23 @@ class P2EModel(TorchModelV2, nn.Module):
         shape = (c, h, w)
 
         linear_num = 64
+        latent_size = 64
 
         
         self.encoder = SmallEncoder()
         self.decoder = SmallDecoder()
         
+        self.ensemble = Ensemble(
+            num_ensembles=10,
+            obs_space=latent_size,
+            action_space=action_space
+            )
+
+        self.dynamics_model = DynamicsModel(
+            action_size=action_space,
+            latent_size=latent_size,
+            hidden_size=64+1
+            )
 
         self.policy_head = PolicyHead(linear_num, num_outputs)
         self.value_head = ValueHead(linear_num)
@@ -85,6 +99,8 @@ class P2EModel(TorchModelV2, nn.Module):
 
         self.count = 0
 
+
+
         
     @override(ModelV2)
     def forward(self, input_dict, state, seq_lens):
@@ -93,6 +109,8 @@ class P2EModel(TorchModelV2, nn.Module):
         obs = obs.permute(0, 3, 1, 2)  # NHWC => NCHW
         
         latent_obs = self.encoder(obs)
+
+        ensemble_out, ensemble_disagreement = self.ensemble(latent_obs)
 
         l = self.fc(latent_obs.detach())
         l = nn.functional.leaky_relu(l)
@@ -105,13 +123,13 @@ class P2EModel(TorchModelV2, nn.Module):
         policy = self.policy_head(l)
         value = self.value_head(l)
 
-
         self._value = value.squeeze(1)
-        self.vae_out = latent_obs
+        self.encoder_out = latent_obs
         self.dynamics_out = dynamics_out
         self.ensemble_out = ensemble_out
+        self.ensemble_disagreement = ensemble_disagreement
 
-        #next_obs, reward, terminal = self.world_model(latent_obs, policy)
+        next_obs, reward, terminal = self.dynamics_model(latent_obs, policy)
 
         return policy, state
 
@@ -121,6 +139,7 @@ class P2EModel(TorchModelV2, nn.Module):
         return self._value
 
 
+    """
     @override(ModelV2)
     def custom_loss(self, policy_loss, train_batch):
 
@@ -133,7 +152,6 @@ class P2EModel(TorchModelV2, nn.Module):
 
             vae_loss = self.vae_loss_fn(obs, self.decoder(self.last_latent_obs))
             self.vae_loss = vae_loss
-            
 
 
         # GET DYNAMICS LOSS
@@ -149,7 +167,7 @@ class P2EModel(TorchModelV2, nn.Module):
 
         self.count += 1
         return policy_loss + dynamics_loss + vae_loss + ensemble_loss 
-
+    """
 
 
     def custom_stats(self):
